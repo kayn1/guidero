@@ -3,6 +3,7 @@ package inmemory
 import (
 	"context"
 
+	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
 	"github.com/kayn1/guidero/internal/domain"
 	"github.com/kayn1/guidero/internal/repository"
@@ -18,11 +19,17 @@ func NewRepository() *InMemoryRepository {
 }
 
 // CreateUser implements repository.Repository.
-func (i *InMemoryRepository) CreateUser(ctx context.Context, user domain.CreateUserRequest) (*domain.User, error) {
-	// Create user in memory
+func (i *InMemoryRepository) CreateUser(ctx context.Context, userRequest domain.CreateUserRequest) (*domain.User, error) {
+
+	// Generate random user using fakeit
+	user := domain.User{
+		Name:  gofakeit.Name(),
+		Email: gofakeit.Email(),
+		ID:    uuid.Must(uuid.NewRandom()),
+	}
 
 	return &domain.User{
-		ID:    uuid.Must(uuid.NewRandom()),
+		ID:    user.ID,
 		Name:  user.Name,
 		Email: user.Email,
 	}, nil

@@ -1,4 +1,4 @@
-//go:generate mockgen -destination=mocks/user_repository_mock.go -package=mocks github.com/kayn1/guidero/internal/repository UserRepository
+//go:generate mockgen -destination=mocks/repository_mock.go -package=mocks github.com/kayn1/guidero/internal/repository Repository
 
 package repository
 
