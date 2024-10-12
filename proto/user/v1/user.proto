@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package proto.user.v1;
+
+option go_package = "github.com/kayn1/guidero/gen/proto/user/v1";
+
+message User {
+    string id = 1;
+    string name = 2;
+    string email = 3;
+    string created_at = 5;
+    string updated_at = 6;
+}
+
+message UserResponse {
+    User user = 1;
+}
+
+message ListResponse {
+    repeated User users = 1;
+}
+
+message CreateRequest {
+    string name = 1;
+    string email = 2;
+}
+
+message CreateResponse {
+    User user = 1;
+}
+
+message UpdateRequest {
+    string id = 1;
+    string name = 2;
+    string email = 3;
+}
+
+message UpdateResponse {
+    User user = 1;
+}
+
+message DeleteRequest {
+    string id = 1;
+}
+
+message DeleteResponse {
+    User user = 1;
+}
+
+message GetRequest {
+    string id = 1;
+}
+
+message GetResponse {
+    User user = 1;
+}
+
+message UsersQuery {
+    string name = 1;
+    string email = 2;
+}
+
+message ListRequest {
+    UsersQuery query = 1;
+}
+
+service UserService {
+    rpc Create(CreateRequest) returns (CreateResponse);
+    rpc Update(UpdateRequest) returns (UpdateResponse);
+    rpc Delete(DeleteRequest) returns (DeleteResponse);
+    rpc Get(GetRequest) returns (GetResponse);
+    rpc List(ListRequest) returns (ListResponse);
+}
+
