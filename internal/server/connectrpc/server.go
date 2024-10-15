@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/kayn1/guidero/gen/proto/user/v1/v1connect"
 	"github.com/kayn1/guidero/internal/domain"
@@ -15,8 +16,9 @@ const CONNECTRPC_SERVER = "connectrpc"
 var _ server.Server = &ConnectRpcServer{}
 
 type ConnectRpcServer struct {
-	app    domain.Application
-	logger slog.Logger
+	app      domain.Application
+	logger   slog.Logger
+	listener *http.Server
 }
 
 func NewConnectRpcServer(app domain.Application) *ConnectRpcServer {
@@ -30,9 +32,15 @@ func (s *ConnectRpcServer) Start() error {
 	mux := http.NewServeMux()
 	path, handler := v1connect.NewUserServiceHandler(s)
 	mux.Handle(path, handler)
+
+	s.listener = &http.Server{
+		Addr:    ":8080",
+		Handler: mux,
+	}
+
 	go func() {
-		err := http.ListenAndServe(":8080", mux)
-		if err != nil {
+		err := s.listener.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
 			s.logger.Log(context.Background(), slog.LevelError, "msg", "Failed to start server", "err", err)
 		}
 	}()
@@ -45,7 +53,15 @@ func (s *ConnectRpcServer) Start() error {
 }
 
 func (s *ConnectRpcServer) Stop() error {
-	s.logger.Info("Server has been stopped")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := s.listener.Shutdown(ctx); err != nil {
+		s.logger.Log(context.Background(), slog.LevelError, "msg", "Failed to stop server", "err", err)
+		return err
+	}
+
+	s.logger.Log(context.Background(), slog.LevelInfo, "msg", "Server has been stopped", slog.Attr{})
 	return nil
 }
 
