@@ -1,3 +1,5 @@
+//go:generate mockgen -destination=mocks/application.go -package=mocks github.com/kayn1/guidero/internal/domain UserService
+
 package domain
 
 import (

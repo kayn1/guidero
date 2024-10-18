@@ -20,8 +20,6 @@ func NewRepository() *InMemoryRepository {
 
 // CreateUser implements repository.Repository.
 func (i *InMemoryRepository) CreateUser(ctx context.Context, userRequest domain.CreateUserRequest) (*domain.User, error) {
-
-	// Generate random user using fakeit
 	user := domain.User{
 		Name:  gofakeit.Name(),
 		Email: gofakeit.Email(),
