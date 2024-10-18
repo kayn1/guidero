@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/kayn1/guidero/gen/proto/user/v1/v1connect"
@@ -17,15 +19,35 @@ var _ server.Server = &ConnectRpcServer{}
 
 type ConnectRpcServer struct {
 	app      domain.Application
-	logger   slog.Logger
+	logger   *slog.Logger
 	listener *http.Server
 }
 
 func NewConnectRpcServer(app domain.Application) *ConnectRpcServer {
+	logger := newLogger()
+
 	return &ConnectRpcServer{
 		app:    app,
-		logger: *slog.Default(),
+		logger: logger,
 	}
+}
+
+func newLogger() *slog.Logger {
+	// Create a JSON handler with common options
+	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo, // Set the log level to Info
+	})
+
+	// Create a new logger with the handler
+	logger := slog.New(handler)
+
+	// Add common context fields
+	logger = logger.With(
+		slog.String("service", "connectrpc"),
+		slog.String("version", "1.0.0"),
+	)
+
+	return logger
 }
 
 func (s *ConnectRpcServer) Start() error {
@@ -38,18 +60,21 @@ func (s *ConnectRpcServer) Start() error {
 		Handler: mux,
 	}
 
+	// Start the server in a goroutine
 	go func() {
 		err := s.listener.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
-			s.logger.Log(context.Background(), slog.LevelError, "msg", "Failed to start server", "err", err)
+			s.logger.Error("Failed to start server", slog.String("error", err.Error()))
 		}
 	}()
 
-	s.logger.Log(context.Background(), slog.LevelInfo, "msg", "Server has been started", slog.Attr{
-		Key:   "port",
-		Value: slog.AnyValue(8080),
-	})
-	return nil
+	s.logger.Info("Server has been started", slog.Int("port", 8080))
+
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, os.Interrupt)
+	<-sigint
+
+	return s.Stop()
 }
 
 func (s *ConnectRpcServer) Stop() error {
@@ -57,11 +82,11 @@ func (s *ConnectRpcServer) Stop() error {
 	defer cancel()
 
 	if err := s.listener.Shutdown(ctx); err != nil {
-		s.logger.Log(context.Background(), slog.LevelError, "msg", "Failed to stop server", "err", err)
+		s.logger.Error("Failed to stop server", slog.String("error", err.Error()))
 		return err
 	}
 
-	s.logger.Log(context.Background(), slog.LevelInfo, "msg", "Server has been stopped", slog.Attr{})
+	s.logger.Info("Server has been stopped")
 	return nil
 }
 

@@ -2,8 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
-	"os/signal"
 
 	"github.com/kayn1/guidero/internal/domain"
 	"github.com/kayn1/guidero/internal/domain/users"
@@ -19,15 +17,6 @@ func main() {
 
 	err := server.Start()
 	if err != nil {
-		panic(err)
-	}
-
-	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, os.Interrupt)
-	<-sigint
-
-	err = server.Stop()
-	if err != nil {
-		log.Fatalf("Failed to stop server: %v", err)
+		log.Fatalf("Server failed: %v", err)
 	}
 }
