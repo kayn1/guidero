@@ -13,7 +13,11 @@ func main() {
 	repo := inmemory.NewRepository()
 	userService := users.NewUserService(repo)
 	app := domain.NewApplication(userService)
-	server := connectrpc.NewConnectRpcServer(app)
+	server := connectrpc.NewConnectRpcServer(app,
+		connectrpc.WithInterceptors(
+			connectrpc.NewLoggingInterceptor(),
+		),
+	)
 
 	err := server.Start()
 	if err != nil {
