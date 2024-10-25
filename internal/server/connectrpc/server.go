@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"time"
 
-	"connectrpc.com/connect"
 	crpc "connectrpc.com/connect"
 	"github.com/kayn1/guidero/gen/proto/user/v1/v1connect"
+	"github.com/kayn1/guidero/internal"
 	"github.com/kayn1/guidero/internal/domain"
 	"github.com/kayn1/guidero/internal/server"
 )
@@ -29,11 +29,9 @@ type ConnectRpcServer struct {
 type ConnectRpcServerOption func(*ConnectRpcServer)
 
 func NewConnectRpcServer(app domain.Application, opts ...ConnectRpcServerOption) *ConnectRpcServer {
-	logger := newLogger()
-
 	server := &ConnectRpcServer{
 		app:          app,
-		logger:       logger,
+		logger:       internal.Logger,
 		interceptors: []crpc.Interceptor{},
 	}
 
@@ -42,24 +40,6 @@ func NewConnectRpcServer(app domain.Application, opts ...ConnectRpcServerOption)
 	}
 
 	return server
-}
-
-func newLogger() *slog.Logger {
-	// Create a JSON handler with common options
-	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo, // Set the log level to Info
-	})
-
-	// Create a new logger with the handler
-	logger := slog.New(handler)
-
-	// Add common context fields
-	logger = logger.With(
-		slog.String("service", "connectrpc"),
-		slog.String("version", "1.0.0"),
-	)
-
-	return logger
 }
 
 func (s *ConnectRpcServer) Start() error {
@@ -114,56 +94,8 @@ func WithInterceptors(interceptors ...crpc.Interceptor) ConnectRpcServerOption {
 	}
 }
 
-type LoggingInterceptor struct {
-	logger *slog.Logger
-}
-
-// WrapStreamingClient implements connect.Interceptor.
-func (l *LoggingInterceptor) WrapStreamingClient(crpc.StreamingClientFunc) crpc.StreamingClientFunc {
-	panic("unimplemented")
-}
-
-// WrapStreamingHandler implements connect.Interceptor.
-func (l *LoggingInterceptor) WrapStreamingHandler(crpc.StreamingHandlerFunc) crpc.StreamingHandlerFunc {
-	// Log the request and response of the streaming RPC
-	return func(ctx context.Context, conn crpc.StreamingHandlerConn) error {
-		l.logger.Info("Streaming RPC started")
-
-		err := conn.Receive(ctx)
-		if err != nil {
-			l.logger.Error("Streaming RPC failed", slog.String("error", err.Error()))
-			return err
-		}
-
-		l.logger.Info("Streaming RPC completed")
-		return nil
+func WithLogger(logger *slog.Logger) ConnectRpcServerOption {
+	return func(s *ConnectRpcServer) {
+		s.logger = logger
 	}
 }
-
-func (l *LoggingInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
-	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-		l.logger.Info("Unary RPC started",
-			slog.String("procedure", req.Spec().Procedure),
-			slog.String("peer", req.Peer().Addr))
-
-		resp, err := next(ctx, req)
-		if err != nil {
-			l.logger.Error("Unary RPC failed",
-				slog.String("procedure", req.Spec().Procedure),
-				slog.String("error", err.Error()))
-			return nil, err
-		}
-
-		l.logger.Info("Unary RPC completed",
-			slog.String("procedure", req.Spec().Procedure),
-		)
-		return resp, nil
-	}
-}
-func NewLoggingInterceptor() *LoggingInterceptor {
-	return &LoggingInterceptor{
-		logger: newLogger(),
-	}
-}
-
-var _ crpc.Interceptor = &LoggingInterceptor{}
