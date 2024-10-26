@@ -19,7 +19,6 @@ type UserService struct {
 	repo repository.Repository
 }
 
-// CreateUser implements domain.UserService.
 func (u *UserService) CreateUser(ctx context.Context, user domain.CreateUserRequest) (*domain.User, error) {
 	return u.repo.CreateUser(ctx, user)
 }

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"os"
 
 	"github.com/kayn1/guidero/internal"
 	"github.com/kayn1/guidero/internal/domain"
@@ -24,6 +24,7 @@ func main() {
 
 	err := server.Start()
 	if err != nil {
-		log.Fatalf("Server failed: %v", err)
+		internal.Logger.Error("failed to start server", "error", err)
+		os.Exit(1)
 	}
 }
